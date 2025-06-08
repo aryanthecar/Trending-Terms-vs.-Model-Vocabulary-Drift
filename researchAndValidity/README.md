@@ -39,7 +39,7 @@ is solely research based and not representative of the final project.
 - Result: Minimal token drift detected — led to de-emphasis of this method.
 
 #### `semantic_drift_embeddings.ipynb`
-- Loaded two Hugging Face OpenAI models ([GPT2](https://huggingface.co/docs/transformers/v4.18.0/model_doc/gpt2) and [OpenAI GPT](https://huggingface.co/docs/transformers/v4.18.0/model_doc/openai-gpt)
+- Loaded two Hugging Face OpenAI models ([GPT2](https://huggingface.co/docs/transformers/v4.18.0/model_doc/gpt2) and [OpenAI GPT](https://huggingface.co/docs/transformers/v4.18.0/model_doc/openai-gpt))
 - Compared embeddings of slang term "chopped"
 - Result: Identified drift score of 1 - cosineSimilarity as viable metric for semantic shift where lower scores indicate higher drift
 
