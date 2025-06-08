@@ -43,7 +43,7 @@ is solely research based and not representative of the final project.
 - Compared embeddings of slang term "chopped"
 - Result: Identified drift score of 1 - cosineSimilarity as viable metric for semantic shift where lower scores indicate higher drift
 
-#### 6. `definition_similarity.ipynb`
+#### `definition_similarity.ipynb`
 - Prompted GPT-2 HF transformer for definition of chopped
 - Compared outputs to Urban Dictionary definitions using:
   - [HFSentenceTransformers](https://huggingface.co/sentence-transformers)
