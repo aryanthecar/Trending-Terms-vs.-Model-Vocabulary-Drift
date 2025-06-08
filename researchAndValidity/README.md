@@ -34,16 +34,21 @@ is solely research based and not representative of the final project.
 ### Evaluation Methods
 
 #### `tiktokenExploration.ipynb`
+- This is the tokenization evaluation method to identify drift between drift method
 - Used OpenAI’s ['tiktoken'](https://github.com/openai/tiktoken) library to analyze token drift.
 - Example: Compared how different slang terms (e.g., "liberalism", "rizz", "delulu") are tokenized.
 - Result: Minimal token drift detected — led to de-emphasis of this method.
 
 #### `semantic_drift_embeddings.ipynb`
+- Utilizes semantic drift analyzing cosine difference between embeddings of different models
+-  (OpenAI_APIVectorEmbeddings)[https://platform.openai.com/docs/guides/embeddings] and (HuggingFaceTransformers)[https://huggingface.co/docs/transformers/] can be used as embedding model resources
 - Loaded two Hugging Face OpenAI models ([GPT2](https://huggingface.co/docs/transformers/v4.18.0/model_doc/gpt2) and [OpenAI GPT](https://huggingface.co/docs/transformers/v4.18.0/model_doc/openai-gpt))
 - Compared embeddings of slang term "chopped"
 - Result: Identified drift score of 1 - cosineSimilarity as viable metric for semantic shift where lower scores indicate higher drift
 
 #### `definition_similarity.ipynb`
+- Contextual behavioral drift for LLM models (tldr., how do they interpret and use certain words)
+- (OLamma)[https://ollama.com], (HuggingFaceTransformers)[https://huggingface.co/docs/transformers/], and (OpenAPI)[https://openai.com/index/openai-api/] are resources for models
 - Prompted GPT-2 HF transformer for definition of chopped
 - Compared outputs to Urban Dictionary definitions using:
   - [HFSentenceTransformers](https://huggingface.co/sentence-transformers)
