@@ -3,7 +3,7 @@ import pandas as pd
 import os
 from dotenv import load_dotenv
 
-# Set up Reddit API credentials (you'll need to create a Reddit App at https://www.reddit.com/prefs/apps)
+# Set up Reddit API credentials
 load_dotenv()  # Load environment variables from .env file
 id = os.getenv("CLIENT_ID")
 secret = os.getenv("CLIENT_SECRET")
@@ -15,7 +15,7 @@ reddit = praw.Reddit(
     user_agent=user
 )
 
-# List of subreddits to monitor
+# List of subreddits to extract posts from
 subreddits = ["teenagers", "OutOfTheLoop", "linguistics", "AskReddit", "dankmemes", "brainrot", "SlangExplained"]
 
 # How many posts to pull per subreddit
@@ -29,7 +29,7 @@ for sub in subreddits:
     subreddit = reddit.subreddit(sub)
     print(f"\nFetching posts from r/{sub}...")
 
-    for post in subreddit.hot(limit=POST_LIMIT):  # try .new(), .top() as alternatives
+    for post in subreddit.hot(limit=POST_LIMIT):
         posts.append({
             "subreddit": sub,
             "title": post.title,
@@ -44,4 +44,3 @@ for sub in subreddits:
 # Store in CSV
 df = pd.DataFrame(posts)
 df.to_csv("reddit_trending_posts.csv", index=False)
-print("\n✅ Saved to reddit_trending_posts.csv")
