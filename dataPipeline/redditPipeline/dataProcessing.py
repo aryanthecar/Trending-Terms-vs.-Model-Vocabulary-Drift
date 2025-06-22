@@ -74,20 +74,23 @@ for word, freq in top_500:
         definition = "unknown"
         example = "unknown"
 
-        # Profanity check
-        if profanity.contains_profanity(word):
-            continue
-        if profanity.contains_profanity(definition):
-            continue
-        if profanity.contains_profanity(example or ""):
-            continue
+    # Profanity check
+    if profanity.contains_profanity(word):
+        print(f"🚫 Skipping profanity: {word}")
+        continue
+    if profanity.contains_profanity(definition):
+        print(f"🚫 Skipping profanity: {word}")
+        continue
+    if profanity.contains_profanity(example or ""):
+        print(f"🚫 Skipping profanity: {word}")
+        continue
 
-        verified_data.append({
-            "word": word,
-            "frequency": freq,
-            "standard_definition": definition,
-            "standard_example": example
-        })
+    verified_data.append({
+        "word": word,
+        "frequency": freq,
+        "standard_definition": definition,
+        "standard_example": example
+    })
     # API rate limiting so my ip dont get blocked heheh
     time.sleep(0.5)  
 
