@@ -19,7 +19,7 @@ To use the Reddit API, you need credentials from Reddit:
 4. After creation, you will see:
    - **client_id** (this will be emailed to you)
    - **client_secret**
-   - **user_agent** (any descriptive string, e.g., `my_reddit_app:v1.0 (by /u/yourusername)`)
+   - **user_agent** (any descriptive string)
 
 Create a `.env` file in the project directory with the following content:
 
@@ -29,7 +29,7 @@ REDDIT_CLIENT_SECRET=your_client_secret_here
 REDDIT_USER_AGENT=your_user_agent_here
 ```
 
-**Do not share your credentials publicly.**
+
 
 ---
 
