@@ -76,13 +76,10 @@ for word, freq in top_500:
 
         # Profanity check
         if profanity.contains_profanity(word):
-            print(f"🚫 Skipping profanity: {word}")
             continue
         if profanity.contains_profanity(definition):
-            print(f"🚫 Skipping profanity: {word}")
             continue
         if profanity.contains_profanity(example or ""):
-            print(f"🚫 Skipping profanity: {word}")
             continue
 
         verified_data.append({
