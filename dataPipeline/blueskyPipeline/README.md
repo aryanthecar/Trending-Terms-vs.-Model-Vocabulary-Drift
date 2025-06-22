@@ -7,7 +7,7 @@ This project scrapes high-engagement posts from Bluesky, processes the text data
 
 ---
 
-## Bluesky API Key Setup Instructions 😱
+## Bluesky API Key Setup Instructions 
 To use the Bluesky API, you need credentials from Bluesky:
 
 1. Go to [Bluesky](https://bsky.app) and create an account.
