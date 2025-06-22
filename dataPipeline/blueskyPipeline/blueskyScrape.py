@@ -2,6 +2,7 @@ import pandas as pd
 import os
 from dotenv import load_dotenv
 from atproto import Client
+import time
 
 # Set up Bluesky API credentials
 load_dotenv()  # Load environment variables from .env file
@@ -22,103 +23,85 @@ try:
     client.login(handle, password)
     print(f"✅ Logged in as {handle}")
 except Exception as e:
-    print(f" Login failed: {e}")
+    print(f"❌ Login failed: {e}")
     exit(1)
 
 print(f"\nFetching top {POST_LIMIT} high-engagement posts...")
 
-try:
-    # Get timeline feed (contains popular posts)
-    cursor = None
-    posts_collected = 0
+# Use search to find popular posts
+search_terms = [
+    "",  # Empty search to get recent posts
+    "trending",
+    "viral", 
+    "popular",
+    "meme",
+    "funny",
+    "news",
+    "tech",
+    "science"
+]
+
+for term in search_terms:
+    if len(posts) >= POST_LIMIT:
+        break
+        
+    print(f"\nSearching for posts with term: '{term if term else 'recent posts'}'...")
     
-    while posts_collected < POST_LIMIT:
-        # Get batch of posts from timeline
-        limit = min(100, POST_LIMIT - posts_collected)
-        timeline = client.get_timeline(cursor=cursor, limit=limit)
+    try:
+        # Search for posts
+        search_params = {"limit": 100}
+        if term:
+            search_params["q"] = term
+            
+        search_results = client.app.bsky.feed.search_posts(search_params)
         
-        if not timeline.feed:
-            print("No more posts in timeline.")
-            break
-        
-        for feed_view in timeline.feed:
-            if posts_collected >= POST_LIMIT:
+        if not search_results.posts:
+            print(f"No posts found for term: {term}")
+            continue
+            
+        for post in search_results.posts:
+            if len(posts) >= POST_LIMIT:
                 break
                 
-            post = feed_view.post
-            
-            # Extract engagement metrics
-            like_count = feed_view.post.likeCount if hasattr(feed_view.post, 'likeCount') else 0
-            repost_count = feed_view.post.repostCount if hasattr(feed_view.post, 'repostCount') else 0
-            reply_count = feed_view.post.replyCount if hasattr(feed_view.post, 'replyCount') else 0
+            # Extract engagement metrics if available
+            like_count = getattr(post, 'likeCount', 0)
+            repost_count = getattr(post, 'repostCount', 0)
+            reply_count = getattr(post, 'replyCount', 0)
             
             # Calculate total engagement
             total_engagement = like_count + repost_count + reply_count
             
             posts.append({
-                "search_term": "high_engagement",  # Keep same structure as Reddit
-                "title": "",  # Bluesky posts don't have titles like Reddit
-                "text": post.record.text if hasattr(post.record, 'text') else "",
-                "score": total_engagement,  # Use engagement as score
-                "created_utc": post.record.created_at if hasattr(post.record, 'created_at') else "",
+                "source": f"search_{term}" if term else "recent_posts",
+                "title": "",
+                "text": getattr(post.record, 'text', ''),
+                "score": total_engagement,
+                "created_utc": getattr(post.record, 'created_at', ''),
                 "id": post.cid,
                 "url": post.uri,
-                "author_handle": post.author.handle if hasattr(post.author, 'handle') else "",
+                "author_handle": getattr(post.author, 'handle', ''),
                 "like_count": like_count,
                 "repost_count": repost_count,
                 "reply_count": reply_count,
                 "total_engagement": total_engagement
             })
             
-            posts_collected += 1
-            
-            if posts_collected % 50 == 0:
-                print(f"Collected {posts_collected} posts... (engagement: {total_engagement})")
+        print(f"✅ Collected {len([p for p in posts if p['source'] == (f'search_{term}' if term else 'recent_posts')])} posts from search term: {term}")
         
-        cursor = timeline.cursor
+        # Rate limiting
+        time.sleep(1)
         
-except Exception as e:
-    print(f" Error fetching posts: {e}")
-
-# Sort by engagement (highest first)
-df = pd.DataFrame(posts)
-
-if len(posts) == 0:
-    print("No posts found in timeline. Trying search approach...")
-    
-    # Fallback: use search terms to get posts
-    search_terms = ["trending", "viral", "meme", "slang", "internet"]
-    
-    for term in search_terms:
-        try:
-            results = client.app.bsky.feed.search_posts({"q": term, "limit": 100})
-            
-            for post in results.posts:
-                posts.append({
-                    "search_term": term,
-                    "title": "",
-                    "text": post.record.text if hasattr(post.record, 'text') else "",
-                    "score": 0,
-                    "created_utc": post.record.created_at if hasattr(post.record, 'created_at') else "",
-                    "id": post.cid,
-                    "url": post.uri,
-                    "author_handle": post.author.handle if hasattr(post.author, 'handle') else "",
-                    "like_count": 0,
-                    "repost_count": 0,
-                    "reply_count": 0,
-                    "total_engagement": 0
-                })
-                
-        except Exception as e:
-            print(f"Error searching for '{term}': {e}")
-    
-    df = pd.DataFrame(posts)
+    except Exception as e:
+        print(f"❌ Error searching for term '{term}': {e}")
 
 if len(posts) > 0:
+    df = pd.DataFrame(posts)
     df = df.sort_values('total_engagement', ascending=False)
     df.to_csv("bluesky_trending_posts.csv", index=False)
     print(f"\n✅ Saved {len(posts)} posts to bluesky_trending_posts.csv")
     print(f"Top engagement post: {df.iloc[0]['total_engagement']} interactions")
     print(f"Average engagement: {df['total_engagement'].mean():.1f} interactions")
+    print(f"Source breakdown:")
+    print(df['source'].value_counts())
 else:
-    print("❌ No posts could be collected") 
+    print("❌ No posts could be collected from any search") 
