@@ -5,7 +5,7 @@ import numpy as np
 import torch
 from sentence_transformers import SentenceTransformer, util
 from rouge_score import rouge_scorer
-from google import genai
+import google.generativeai as genai
 
 
 
@@ -56,11 +56,9 @@ def count_tokens_transformers(word: str, model_name: str = 'gpt2') -> int:
     
 def count_tokens_gemini(word: str, geminiAPI: str, model_name: str = 'gemini-2.5-flash') -> int:
     try:
-        client = genai.Client(api_key=geminiAPI)
-        response = client.models.count_tokens(
-            model=model_name,
-            contents=word  
-        )
+        genai.configure(api_key=geminiAPI)
+        model = genai.GenerativeModel(model_name)
+        response = model.count_tokens(word)
         return response.total_tokens
     except Exception as e:
         print(f"Error loading tokenizer for {model_name}: {e}")
@@ -69,17 +67,14 @@ def count_tokens_gemini(word: str, geminiAPI: str, model_name: str = 'gemini-2.5
 
 # Embedding function for different models from huggingface transformers
 def get_gemini_embedding(word: str, geminiAPI: str) -> np.ndarray:
-    client = genai.Client(api_key=geminiAPI)
     try:
-        result = client.models.embed_content(
-                model="gemini-embedding-exp-03-07",
-                contents=word
-        )
+        genai.configure(api_key=geminiAPI)
+        model = genai.GenerativeModel('gemini-embedding-exp-03-07')
+        result = model.embed_content(word)
+        return np.array(result.embedding)
     except Exception as e:
         print(f"Error generating embedding for {word} with Gemini: {e}")
         return None
-
-    return result.embeddings.squeeze().numpy()
 
 def get_word_embedding(model_name: str, word: str) -> np.ndarray:
     try:
@@ -131,12 +126,11 @@ def get_model_definition(model_name: str, word: str, geminiAPI: str = None) -> s
             # result = pipe(prompt, max_new_tokens=50, do_sample=False, num_return_sequences=1)
             definition = result[0]["generated_text"]
         else:
-            client = genai.Client(api_key=geminiAPI)
-            response = client.models.generate_content(
-                model=model_name,
-                contents=f"finish the sentence: Definition of the slang term '{word}':"
-            )
-            definition = response.candidates[0].content
+            genai.configure(api_key=geminiAPI)
+            model = genai.GenerativeModel(model_name)
+            prompt = f"Definition of the slang term '{word}':"
+            response = model.generate_content(prompt)
+            definition = response.text
             prompt = f"Definition of the slang term '{word}':"
         
         # Clean up the definition by removing the prompt part
@@ -208,8 +202,8 @@ def semantic_drift(model1_name: str, model2_name: str, word: str, geminiAPI: str
         return None
 
     sim = cosine_similarity([emb1],[emb2])[0][0]
-
     drift_score = 1 - sim
+    drift_score = max(0.0, min(1.0, drift_score))  # Clamp to [0, 1]
     return round(drift_score, 4)
 
 

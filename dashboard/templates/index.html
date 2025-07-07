@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Drift Analysis Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .content {
+            padding: 30px;
+        }
+
+        .section {
+            margin-bottom: 40px;
+        }
+
+        .section h2 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 1.5rem;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #555;
+        }
+
+        .form-group select, .form-group input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        .form-group select:focus, .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 12px 30px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .results {
+            margin-top: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+
+        .result-item {
+            margin-bottom: 15px;
+            padding: 15px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .result-item h3 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .score {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .error {
+            color: #dc3545;
+            background: #f8d7da;
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 10px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+        }
+
+        .terms-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .term-card {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            cursor: pointer;
+            transition: transform 0.2s;
+            border: 2px solid transparent;
+        }
+
+        .term-card:hover {
+            transform: translateY(-2px);
+            border-color: #667eea;
+        }
+
+        .term-card.selected {
+            border-color: #667eea;
+            background: #f0f4ff;
+        }
+
+        .models-section {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .custom-word-section {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .custom-word-section h3 {
+            color: #333;
+            margin-bottom: 15px;
+        }
+
+        .word-input-group {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .word-input-group input {
+            flex: 1;
+        }
+
+        .word-input-group button {
+            padding: 12px 20px;
+            background: #28a745;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .word-input-group button:hover {
+            background: #218838;
+        }
+
+        @media (max-width: 768px) {
+            .models-section {
+                grid-template-columns: 1fr;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+
+            .word-input-group {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📊 Drift Analysis Dashboard</h1>
+            <p>Analyze vocabulary drift between different language models</p>
+        </div>
+
+        <div class="content">
+            <!-- Custom Word Input -->
+            <div class="section">
+                <h2>🎯 Enter Your Own Word</h2>
+                <div class="custom-word-section">
+                    <h3>Type any word to analyze:</h3>
+                    <div class="word-input-group">
+                        <input type="text" id="customWordInput" placeholder="Enter any word (e.g., 'rizz', 'skibidi', 'your-custom-word')" />
+                        <button onclick="useCustomWord()">Use This Word</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Term Selection -->
+            <div class="section">
+                <h2>🎯 Or Select Trending Term</h2>
+                <div class="form-group">
+                    <label for="termSelect">Choose a trending term:</label>
+                    <select id="termSelect">
+                        <option value="">Select a term...</option>
+                    </select>
+                </div>
+                <div class="terms-grid" id="termsGrid"></div>
+            </div>
+
+            <!-- Model Selection -->
+            <div class="section">
+                <h2>🤖 Select Models for Comparison</h2>
+                <div class="models-section">
+                    <div class="form-group">
+                        <label for="model1Select">Model 1:</label>
+                        <select id="model1Select">
+                            <option value="">Select first model...</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="model2Select">Model 2:</label>
+                        <select id="model2Select">
+                            <option value="">Select second model...</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Analysis Buttons -->
+            <div class="section">
+                <h2>🔍 Run Analysis</h2>
+                <button class="btn" onclick="analyzeTokenization()">Analyze Tokenization Drift</button>
+                <button class="btn" onclick="analyzeSemantic()">Analyze Semantic Drift</button>
+                <button class="btn" onclick="getTokenCount()">Get Token Count</button>
+            </div>
+
+            <!-- Results -->
+            <div class="section">
+                <h2>📈 Results</h2>
+                <div id="results"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let availableModels = {};
+        let trendingTerms = [];
+        let currentWord = '';
+
+        // Load data on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            loadTerms();
+            loadModels();
+        });
+
+        function useCustomWord() {
+            const customWord = document.getElementById('customWordInput').value.trim();
+            if (customWord) {
+                currentWord = customWord;
+                document.getElementById('termSelect').value = '';
+                
+                // Update visual selection
+                document.querySelectorAll('.term-card').forEach(card => {
+                    card.classList.remove('selected');
+                });
+                
+                showResult('Custom Word Selected', {
+                    word: customWord,
+                    message: `Now analyzing: "${customWord}"`
+                });
+            } else {
+                showError('Please enter a word');
+            }
+        }
+
+        async function loadTerms() {
+            try {
+                const response = await fetch('/api/terms');
+                const data = await response.json();
+                trendingTerms = data.terms;
+                
+                const select = document.getElementById('termSelect');
+                const grid = document.getElementById('termsGrid');
+                
+                // Populate dropdown
+                trendingTerms.forEach(term => {
+                    const option = document.createElement('option');
+                    option.value = term;
+                    option.textContent = term;
+                    select.appendChild(option);
+                });
+
+                // Populate grid
+                trendingTerms.forEach(term => {
+                    const card = document.createElement('div');
+                    card.className = 'term-card';
+                    card.textContent = term;
+                    card.onclick = () => selectTerm(term);
+                    grid.appendChild(card);
+                });
+            } catch (error) {
+                console.error('Error loading terms:', error);
+            }
+        }
+
+        async function loadModels() {
+            try {
+                const response = await fetch('/api/models');
+                availableModels = await response.json();
+                
+                const model1Select = document.getElementById('model1Select');
+                const model2Select = document.getElementById('model2Select');
+                
+                // Clear existing options
+                model1Select.innerHTML = '<option value="">Select first model...</option>';
+                model2Select.innerHTML = '<option value="">Select second model...</option>';
+                
+                // Add model options
+                Object.entries(availableModels).forEach(([category, models]) => {
+                    const optgroup1 = document.createElement('optgroup');
+                    optgroup1.label = category;
+                    const optgroup2 = document.createElement('optgroup');
+                    optgroup2.label = category;
+                    
+                    models.forEach(model => {
+                        const option1 = document.createElement('option');
+                        option1.value = model;
+                        option1.textContent = model;
+                        optgroup1.appendChild(option1);
+                        
+                        const option2 = document.createElement('option');
+                        option2.value = model;
+                        option2.textContent = model;
+                        optgroup2.appendChild(option2);
+                    });
+                    
+                    model1Select.appendChild(optgroup1);
+                    model2Select.appendChild(optgroup2);
+                });
+            } catch (error) {
+                console.error('Error loading models:', error);
+            }
+        }
+
+        function selectTerm(term) {
+            currentWord = term;
+            document.getElementById('termSelect').value = term;
+            document.getElementById('customWordInput').value = '';
+            
+            // Update visual selection
+            document.querySelectorAll('.term-card').forEach(card => {
+                card.classList.remove('selected');
+                if (card.textContent === term) {
+                    card.classList.add('selected');
+                }
+            });
+        }
+
+        function getCurrentWord() {
+            // Check custom word first, then selected term
+            const customWord = document.getElementById('customWordInput').value.trim();
+            const selectedTerm = document.getElementById('termSelect').value;
+            
+            if (customWord) {
+                return customWord;
+            } else if (selectedTerm) {
+                return selectedTerm;
+            } else if (currentWord) {
+                return currentWord;
+            }
+            return null;
+        }
+
+        async function analyzeTokenization() {
+            const word = getCurrentWord();
+            const model1 = document.getElementById('model1Select').value;
+            const model2 = document.getElementById('model2Select').value;
+            
+            if (!word || !model1 || !model2) {
+                showError('Please enter a word and select two models');
+                return;
+            }
+            
+            showLoading('Analyzing tokenization drift...');
+            
+            try {
+                const response = await fetch('/api/drift/tokenization', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        word: word,
+                        model1: model1,
+                        model2: model2
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    showResult('Tokenization Drift Analysis', result);
+                } else {
+                    showError(result.error || 'Failed to analyze tokenization drift');
+                }
+            } catch (error) {
+                showError('Error analyzing tokenization drift: ' + error.message);
+            }
+        }
+
+        async function analyzeSemantic() {
+            const word = getCurrentWord();
+            const model1 = document.getElementById('model1Select').value;
+            const model2 = document.getElementById('model2Select').value;
+            
+            if (!word || !model1 || !model2) {
+                showError('Please enter a word and select two models');
+                return;
+            }
+            
+            showLoading('Analyzing semantic drift...');
+            
+            try {
+                const response = await fetch('/api/drift/semantic', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        word: word,
+                        model1: model1,
+                        model2: model2
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    showResult('Semantic Drift Analysis', result);
+                } else {
+                    showError(result.error || 'Failed to analyze semantic drift');
+                }
+            } catch (error) {
+                showError('Error analyzing semantic drift: ' + error.message);
+            }
+        }
+
+        async function getTokenCount() {
+            const word = getCurrentWord();
+            const model = document.getElementById('model1Select').value;
+            
+            if (!word || !model) {
+                showError('Please enter a word and select a model');
+                return;
+            }
+            
+            showLoading('Getting token count...');
+            
+            try {
+                const response = await fetch(`/api/tokens/${encodeURIComponent(word)}?model=${encodeURIComponent(model)}`);
+                const result = await response.json();
+                
+                if (response.ok) {
+                    showResult('Token Count', result);
+                } else {
+                    showError(result.error || 'Failed to get token count');
+                }
+            } catch (error) {
+                showError('Error getting token count: ' + error.message);
+            }
+        }
+
+        function showLoading(message) {
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = `<div class="loading">⏳ ${message}</div>`;
+        }
+
+        function showResult(title, data) {
+            const resultsDiv = document.getElementById('results');
+            let html = `<div class="results"><h3>${title}</h3>`;
+            
+            if (data.score !== undefined) {
+                html += `<div class="result-item">
+                    <h3>Drift Score: <span class="score">${data.score}</span></h3>
+                    <p><strong>Term:</strong> ${data.word}</p>
+                    <p><strong>Model 1:</strong> ${data.model1}</p>
+                    <p><strong>Model 2:</strong> ${data.model2}</p>
+                    <p><strong>Interpretation:</strong> ${data.interpretation}</p>
+                </div>`;
+            } else if (data.token_count !== undefined) {
+                html += `<div class="result-item">
+                    <h3>Token Count: <span class="score">${data.token_count}</span></h3>
+                    <p><strong>Term:</strong> ${data.term}</p>
+                    <p><strong>Model:</strong> ${data.model}</p>
+                </div>`;
+            } else if (data.word && data.message) {
+                html += `<div class="result-item">
+                    <h3>${data.message}</h3>
+                    <p><strong>Word:</strong> ${data.word}</p>
+                </div>`;
+            }
+            
+            html += '</div>';
+            resultsDiv.innerHTML = html;
+        }
+
+        function showError(message) {
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = `<div class="error">❌ ${message}</div>`;
+        }
+    </script>
+</body>
+</html> 
