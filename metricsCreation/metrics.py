@@ -223,6 +223,7 @@ def definition_drift(model1_name: str, model2_name: str, word: str, reference_de
 
 
 
-
+modelDefinition = get_model_definition("Qwen/Qwen3-0.6B", "sybau")
+print(modelDefinition)
     
 
