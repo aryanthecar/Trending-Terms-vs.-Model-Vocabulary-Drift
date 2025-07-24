@@ -38,13 +38,6 @@ The foundational module containing all drift calculation functions and utilities
 ### `definition_analysis.py` - Model Definition Comparison
 Comprehensive script for analyzing how different models define slang terms compared to reference definitions.
 
-#### Features
-- **Batch processing** - Handles multiple models and terms efficiently
-- **Gemini batch optimization** - Uses batch API calls for cost-effective Gemini processing
-- **Rate limiting** - Built-in delays and retry logic for API stability
-- **Sentence trimming** - Extracts first sentence from definitions for consistency
-- **Pivot table output** - Words as rows, models as columns with similarity scores
-
 #### Models Supported
 - HuggingFaceTB/SmolLM2-135M, GPT-2, Qwen/Qwen3-0.6B, Google/Gemma-3-1b-it
 - Gemini models: 2.5-flash, 2.0-flash-lite, 2.5-pro, 1.5-flash
@@ -52,10 +45,6 @@ Comprehensive script for analyzing how different models define slang terms compa
 ### `token_analysis.py` - Cross-Model Token Count Analysis
 Analyzes tokenization differences across various model architectures.
 
-#### Features
-- **Multi-tokenizer support** - OpenAI tiktoken, HuggingFace transformers, Gemini API
-- **Comprehensive model coverage** - 13 different models including GPT, Gemini, and open-source variants
-- **Pivot table output** - Words as rows, models as columns with token counts
 
 #### Models Analyzed
 - OpenAI: GPT-4o, GPT-4o-mini, GPT-4-turbo, GPT-4, GPT-3.5-turbo, GPT-2
@@ -64,12 +53,6 @@ Analyzes tokenization differences across various model architectures.
 
 ### `embedding_drift_analysis.py` - Semantic Drift Matrix
 Calculates pairwise semantic drift between model embeddings for comprehensive drift analysis.
-
-#### Features
-- **Embedding caching** - Stores embeddings for efficient pairwise comparisons
-- **Vector alignment** - Handles different embedding dimensions via zero-padding
-- **Euclidean distance calculation** - Normalized by vector magnitudes
-- **Comprehensive model coverage** - 5 core models with all pairwise combinations
 
 ## Visualization & Analysis Tools
 
@@ -103,15 +86,6 @@ python embedding_drift_analysis.py
 python visualizations.py
 ```
 
-### API Usage
-```python
-# Start Flask server
-python drift_api.py
 
-# Calculate drift via API
-curl -X POST http://localhost:5000/drift/semantic \
-  -H "Content-Type: application/json" \
-  -d '{"word": "rizz", "model1": "gpt2", "model2": "bert-base-uncased"}'
-```
 
 
