@@ -26,7 +26,6 @@ MODELS = [
 ]
 
 def get_first_sentence(text: str) -> str:
-    """Extract the first sentence from text"""
     if not text:
         return text
     
