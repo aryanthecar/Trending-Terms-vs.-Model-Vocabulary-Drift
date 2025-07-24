@@ -275,5 +275,4 @@ def definition_drift(model1_name: str, model2_name: str, word: str, reference_de
     return round(drift_score, 4)
 
 
-print(tokenization_drift("gpt2", "gemini-2.5-flash", "unc", "AIzaSyDAJ8tQF5VP41fvd-GmozJw8ZlcpXtuylQ"))
 
