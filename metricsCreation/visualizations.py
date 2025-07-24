@@ -318,6 +318,83 @@ def plot_8_definition_drift():
         except Exception as e:
             print(f"    ✗ Error processing {target_model}: {e}")
 
+def plot_7_token_drift_heatmap():
+    """Token drift matrix heatmap showing pairwise tokenization differences"""
+    # Select models that appear in the token analysis
+    available_models = [col for col in token_df.columns if col != 'word']
+    
+    # Limit to 10 models for readability (matching the image)
+    selected_models = available_models[:10] if len(available_models) >= 10 else available_models
+    
+    # Create token drift matrix
+    n_models = len(selected_models)
+    drift_matrix = np.zeros((n_models, n_models))
+    
+    for i, model1 in enumerate(selected_models):
+        for j, model2 in enumerate(selected_models):
+            if i == j:
+                drift_matrix[i, j] = 0.0  # No drift with itself
+            else:
+                # Calculate token drift for each word, then average
+                model1_tokens = token_df[model1].dropna()
+                model2_tokens = token_df[model2].dropna()
+                
+                # Find common indices (words that have data for both models)
+                common_indices = model1_tokens.index.intersection(model2_tokens.index)
+                
+                if len(common_indices) > 0:
+                    token_drifts = []
+                    for idx in common_indices:
+                        tokens1 = token_df.loc[idx, model1]
+                        tokens2 = token_df.loc[idx, model2]
+                        
+                        if pd.notna(tokens1) and pd.notna(tokens2) and max(tokens1, tokens2) > 0:
+                            # Token drift formula: 1 - |tokens1 - tokens2| / max(tokens1, tokens2)
+                            drift = abs(tokens1 - tokens2) / max(tokens1, tokens2)
+                            token_drifts.append(drift)
+                    
+                    if token_drifts:
+                        drift_matrix[i, j] = np.mean(token_drifts)
+                    else:
+                        drift_matrix[i, j] = 0.0
+                else:
+                    drift_matrix[i, j] = 0.0
+    
+    # Create the heatmap
+    plt.figure(figsize=(12, 10))
+    
+    # Use a colormap similar to the image (yellow to red)
+    cmap = plt.cm.YlOrRd
+    
+    im = plt.imshow(drift_matrix, cmap=cmap, aspect='equal', vmin=0, vmax=0.3)
+    
+    # Add colorbar
+    cbar = plt.colorbar(im, shrink=0.8)
+    cbar.set_label('Token Drift', rotation=270, labelpad=20, fontsize=12)
+    
+    # Set ticks and labels
+    model_labels = [model.replace('/', '_').replace('-', '_') for model in selected_models]
+    plt.xticks(range(n_models), model_labels, rotation=45, ha='right', fontsize=10)
+    plt.yticks(range(n_models), model_labels, fontsize=10)
+    
+    # Add title
+    plt.title(f'Token Drift Matrix ({n_models}x{n_models})', fontsize=16, fontweight='bold', pad=20)
+    
+    # Add text annotations with drift values
+    for i in range(n_models):
+        for j in range(n_models):
+            text = plt.text(j, i, f'{drift_matrix[i, j]:.2f}',
+                           ha="center", va="center", 
+                           color="black" if drift_matrix[i, j] < 0.15 else "white",
+                           fontsize=9, fontweight='bold')
+    
+    # Adjust layout
+    plt.tight_layout()
+    
+    # Save the plot
+    plt.savefig(f'{output_dir}/token_drift_heatmap.png', dpi=300, bbox_inches='tight')
+    plt.close()
+
 def main():
     print("Creating visualizations...")
     
@@ -339,8 +416,8 @@ def main():
     plot_6_correlation_analysis()
     print("✓ Correlation analysis scatter plot created")
     
-    plot_7_model_performance_heatmap()
-    print("✓ Performance heatmap created")
+    plot_7_token_drift_heatmap()
+    print("✓ Token drift matrix heatmap created")
     
     plot_8_definition_drift()
     print("✓ Definition drift graphs created (5 models)")
