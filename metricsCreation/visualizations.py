@@ -5,8 +5,8 @@ import os
 from itertools import combinations
 
 # Create visualizations directory
-viz_dir = 'metricsCreation/visualizations'
-os.makedirs(viz_dir, exist_ok=True)
+output_dir = 'metricsCreation/visualizations'
+os.makedirs(output_dir, exist_ok=True)
 
 # Load the data
 definition_df = pd.read_csv('metricsCreation/definition_analysis_results.csv')
@@ -38,7 +38,7 @@ def plot_1_definition_similarity():
                 f'{height:.3f}', ha='center', va='bottom')
     
     plt.tight_layout()
-    plt.savefig(f'{viz_dir}/definition_similarity.png', dpi=300, bbox_inches='tight')
+    plt.savefig(f'{output_dir}/definition_similarity.png', dpi=300, bbox_inches='tight')
     plt.close()
 
 # gpt models with years using token counts
@@ -67,7 +67,7 @@ def plot_2_gpt_token_line():
         plt.text(i, value + 0.05, f'{value:.2f}', ha='center', va='bottom', fontweight='bold')
     
     plt.tight_layout()
-    plt.savefig(f'{viz_dir}/gpt_token_line.png', dpi=300, bbox_inches='tight')
+    plt.savefig(f'{output_dir}/gpt_token_line.png', dpi=300, bbox_inches='tight')
     plt.close()
 
 # two bar graphs containing avg token counts for all models (split in half)
@@ -93,7 +93,7 @@ def plot_3_token_counts_split():
                 f'{height:.2f}', ha='center', va='bottom')
     
     plt.tight_layout()
-    plt.savefig(f'{viz_dir}/token_counts_group1.png', dpi=300, bbox_inches='tight')
+    plt.savefig(f'{output_dir}/token_counts_group1.png', dpi=300, bbox_inches='tight')
     plt.close()
     
     # Second half
@@ -112,7 +112,7 @@ def plot_3_token_counts_split():
                 f'{height:.2f}', ha='center', va='bottom')
     
     plt.tight_layout()
-    plt.savefig(f'{viz_dir}/token_counts_group2.png', dpi=300, bbox_inches='tight')
+    plt.savefig(f'{output_dir}/token_counts_group2.png', dpi=300, bbox_inches='tight')
     plt.close()
 
 # embedding drifts for each of the five models, comparing one model to the other four
@@ -144,7 +144,7 @@ def plot_4_embedding_drift():
         
         plt.tight_layout()
         safe_name = model.replace('/', '_').replace(' ', '_')
-        plt.savefig(f'{viz_dir}/embedding_drift_{safe_name}.png', dpi=300, bbox_inches='tight')
+        plt.savefig(f'{output_dir}/embedding_drift_{safe_name}.png', dpi=300, bbox_inches='tight')
         plt.close()
 
 # gemini graph showing tokenizations and definition similarity for Gemini models
@@ -182,7 +182,7 @@ def plot_5_gemini_analysis():
             ax2.text(i, value + 0.01, f'{value:.3f}', ha='center', va='bottom', fontweight='bold')
     
     plt.tight_layout()
-    plt.savefig(f'{viz_dir}/gemini_analysis.png', dpi=300, bbox_inches='tight')
+    plt.savefig(f'{output_dir}/gemini_analysis.png', dpi=300, bbox_inches='tight')
     plt.close()
 
 # correlation between token count and definition similarity
@@ -213,7 +213,7 @@ def plot_6_correlation_analysis():
         plt.plot(token_means.values, p(token_means.values), "--", alpha=0.7, color='red', linewidth=2)
         
         plt.tight_layout()
-        plt.savefig(f'{viz_dir}/correlation_analysis.png', dpi=300, bbox_inches='tight')
+        plt.savefig(f'{output_dir}/correlation_analysis.png', dpi=300, bbox_inches='tight')
         plt.close()
 
 # heatmap showing model performance across different metrics
@@ -253,7 +253,7 @@ def plot_7_model_performance_heatmap():
                            ha="center", va="center", color="black", fontweight='bold')
     
     plt.tight_layout()
-    plt.savefig(f'{viz_dir}/performance_heatmap.png', dpi=300, bbox_inches='tight')
+    plt.savefig(f'{output_dir}/performance_heatmap.png', dpi=300, bbox_inches='tight')
     plt.close()
 
 # five bar graphs showing definition drift (absolute difference in similarity) for each model
@@ -309,7 +309,7 @@ def plot_8_definition_drift():
                 
                 plt.tight_layout()
                 safe_name = target_model.replace('/', '_').replace(' ', '_').replace('-', '_')
-                plt.savefig(f'{viz_dir}/definition_drift_{safe_name}.png', dpi=300, bbox_inches='tight')
+                plt.savefig(f'{output_dir}/definition_drift_{safe_name}.png', dpi=300, bbox_inches='tight')
                 plt.close()
                 print(f"    ✓ Created definition_drift_{safe_name}.png")
             else:
@@ -345,6 +345,6 @@ def main():
     plot_8_definition_drift()
     print("✓ Definition drift graphs created (5 models)")
     
-    print(f"\nAll visualizations saved to {viz_dir}/")
+    print(f"\nAll visualizations saved to {output_dir}/")
 
 main()
