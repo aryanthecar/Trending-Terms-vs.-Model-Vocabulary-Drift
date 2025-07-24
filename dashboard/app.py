@@ -186,6 +186,7 @@ def get_token_count(term):
     
     try:
         # OpenAI models that use tiktoken
+        # i think gpt2 might be included in this list too
         tiktoken_models = {
             'gpt-4o-mini', 'gpt-4-turbo', 'gpt-4', 'gpt-3.5-turbo', 'gpt-4o'
         }
@@ -198,10 +199,9 @@ def get_token_count(term):
                 return jsonify({
                     "error": "Gemini API key is required for Gemini models"
                 }), 400
-            # Fix: Correct parameter order - (word, geminiAPI, model_name)
+         
             token_count = count_tokens_gemini(term, api_key, model)
         else:
-            # Use transformers tokenizer for other models
             token_count = count_tokens_transformers(term, model)
         
         if token_count is None:
