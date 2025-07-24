@@ -1,13 +1,14 @@
 from flask import Flask, request, jsonify, render_template
 from flask_cors import CORS
 import pandas as pd
+import numpy as np  # Add this import
 import os
 import sys
 
 # Add the metricsCreation directory to the path so we can import from it
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'metricsCreation'))
 
-from metrics import tokenization_drift, semantic_drift, definition_drift, count_tokens_openAI, count_tokens_transformers
+from metrics import tokenization_drift, semantic_drift, definition_drift, count_tokens_openAI, count_tokens_transformers, count_tokens_gemini
 
 app = Flask(__name__)
 CORS(app)
@@ -36,6 +37,18 @@ AVAILABLE_MODELS = {
         "gemini-2.5-flash", "gemini-2.0-flash-lite", "gemini-2.5-pro", "gemini-1.5-flash"
     ]
 }
+
+def convert_numpy_types(obj):
+    """Convert numpy types to Python native types for JSON serialization"""
+    if isinstance(obj, np.integer):
+        return int(obj)
+    elif isinstance(obj, np.floating):
+        return float(obj)
+    elif isinstance(obj, np.ndarray):
+        return obj.tolist()
+    elif obj is None:
+        return None
+    return obj
 
 @app.route('/')
 def index():
@@ -84,6 +97,9 @@ def compute_tokenization_drift():
         if score is None:
             return jsonify({"error": "Failed to compute tokenization drift"}), 500
         
+        # Convert numpy types to Python types
+        score = convert_numpy_types(score)
+        
         return jsonify({
             "drift_type": "tokenization",
             "word": word,
@@ -112,6 +128,9 @@ def compute_semantic_drift():
         
         if score is None:
             return jsonify({"error": "Failed to compute semantic drift"}), 500
+        
+        # Convert numpy types to Python types
+        score = convert_numpy_types(score)
         
         return jsonify({
             "drift_type": "semantic",
@@ -146,6 +165,9 @@ def compute_definition_drift():
         if score is None:
             return jsonify({"error": "Failed to compute definition drift"}), 500
         
+        # Convert numpy types to Python types
+        score = convert_numpy_types(score)
+        
         return jsonify({
             "drift_type": "definition",
             "word": word,
@@ -166,7 +188,7 @@ def get_token_count(term):
     
     try:
         tiktoken_models = {
-            'gpt2', 'gpt-4o', 'gpt-4o-mini', 'gpt-4-turbo', 'gpt-4', 'gpt-3.5-turbo'
+            'gpt-4o-mini', 'gpt-4-turbo', 'gpt-4', 'gpt-3.5-turbo'
         }
         
         if model in tiktoken_models:
@@ -175,6 +197,9 @@ def get_token_count(term):
             token_count = count_tokens_gemini(term, gemini_api, model)
         else:
             token_count = count_tokens_transformers(term, model)
+        
+        # Convert numpy types to Python types
+        token_count = convert_numpy_types(token_count)
         
         return jsonify({
             "term": term,
@@ -193,4 +218,4 @@ def health_check():
     })
 
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=5000) 
+    app.run(debug=True, host='0.0.0.0', port=5001) 

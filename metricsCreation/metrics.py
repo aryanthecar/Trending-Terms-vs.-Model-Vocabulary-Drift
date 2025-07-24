@@ -177,16 +177,44 @@ def tokenization_drift(model1_name: str, model2_name: str, word: str, geminiAPI:
         'text-embedding-ada-002', 'text-embedding-3-small', 'text-embedding-3-large'
     ])
 
-    # tokens1 = counttoken transdofrmer if model1_name not in tiktokenModels else count_tokens_openAI(word, model1_name)
-    tokens1 = count_tokens_openAI(word, model1_name) if model1_name in tiktokenModels else count_tokens_transformers(word, model1_name) if 'gemini' not in model1_name.lower() else count_tokens_gemini(word, geminiAPI, model1_name)
-    tokens2 = count_tokens_openAI(word, model2_name) if model2_name in tiktokenModels else count_tokens_transformers(word, model2_name) if 'gemini' not in model2_name.lower() else count_tokens_gemini(word, geminiAPI, model2_name)
+    try:
+        # Get token count for model 1
+        if model1_name in tiktokenModels:
+            tokens1 = count_tokens_openAI(word, model1_name)
+        elif 'gemini' in model1_name.lower():
+            if geminiAPI is None:
+                print(f"Warning: Gemini API key required for {model1_name}")
+                return None
+            tokens1 = count_tokens_gemini(word, geminiAPI, model1_name)
+        else:
+            tokens1 = count_tokens_transformers(word, model1_name)
+        
+        # Get token count for model 2
+        if model2_name in tiktokenModels:
+            tokens2 = count_tokens_openAI(word, model2_name)
+        elif 'gemini' in model2_name.lower():
+            if geminiAPI is None:
+                print(f"Warning: Gemini API key required for {model2_name}")
+                return None
+            tokens2 = count_tokens_gemini(word, geminiAPI, model2_name)
+        else:
+            tokens2 = count_tokens_transformers(word, model2_name)
+        
+        
+        # Check for invalid token counts
+        if tokens1 is None or tokens2 is None or tokens1 == 0 or tokens2 == 0:
+            print("Could not compute drift due to failed tokenization with given models.")
+            return None
 
-    if tokens1 == 0 or tokens2 == 0:
-        print("Could not compute drift due to failed tokenization with given models.")
+        # Calculate drift: higher values = more drift
+        # Formula: |tokens1 - tokens2| / max(tokens1, tokens2)
+        # This gives 0 for identical counts, approaching 1 for very different counts
+        drift_score = abs(tokens1 - tokens2) / max(tokens1, tokens2)
+        return round(drift_score, 4)
+        
+    except Exception as e:
+        print(f"Error in tokenization_drift: {e}")
         return None
-
-    drift_score = 1 - (abs(tokens1 - tokens2) / max(tokens1, tokens2))
-    return round(drift_score, 4)
 
 
 def align_vectors(vec1: np.ndarray, vec2: np.ndarray) -> tuple:
@@ -247,5 +275,5 @@ def definition_drift(model1_name: str, model2_name: str, word: str, reference_de
     return round(drift_score, 4)
 
 
-
+print(tokenization_drift("gpt2", "gemini-2.5-flash", "unc", "AIzaSyDAJ8tQF5VP41fvd-GmozJw8ZlcpXtuylQ"))
 
