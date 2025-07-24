@@ -1,12 +1,11 @@
 import tiktoken
 from transformers import AutoTokenizer, AutoModel, pipeline
-from sklearn.metrics.pairwise import cosine_similarity
+from sklearn.metrics.pairwise import cosine_similarity, euclidean_distances
 import numpy as np
 import torch
 from sentence_transformers import SentenceTransformer, util
 from rouge_score import rouge_scorer
 import google.generativeai as genai
-
 
 
 """
@@ -69,9 +68,14 @@ def count_tokens_gemini(word: str, geminiAPI: str, model_name: str = 'gemini-2.5
 def get_gemini_embedding(word: str, geminiAPI: str) -> np.ndarray:
     try:
         genai.configure(api_key=geminiAPI)
-        model = genai.GenerativeModel('gemini-embedding-exp-03-07')
-        result = model.embed_content(word)
-        return np.array(result.embedding)
+        
+        # Use the correct embedding API method
+        result = genai.embed_content(
+            model='gemini-embedding-001',
+            content=word
+        )
+        
+        return np.array(result['embedding'])
     except Exception as e:
         print(f"Error generating embedding for {word} with Gemini: {e}")
         return None
@@ -164,9 +168,9 @@ def compare_definitions(model_def: str, reference_def: str) -> float:
 
 ## COMPUTE DRIFT BETWEEN MODELS BASED ON DRIFT TYPE (TOKENIZATION, EMBEDDING, DEFINITION)
 
-# THE DRIFT SCORE IS A VALUE BETWEEN 0 AND 1, WHERE 0 MEANS MAXIMUM DRIFT AND 1 MEANS NO DRIFT
+# THE DRIFT SCORE IS A VALUE BETWEEN 0 AND 1, WHERE 0 MEANS NO DRIFT AND 1 MEANS MAXIMUM DRIFT
 # Essentially the drift score is the similarity between the two models for a given word, 
-# where 1 means they are identical and 0 means they are completely different.
+# where 0 means they are identical and 1 means they are completely different.
 def tokenization_drift(model1_name: str, model2_name: str, word: str, geminiAPI: str = None) -> float:
     tiktokenModels = set([
         'gpt-4o', 'gpt-4o-mini', 'gpt-4-turbo', 'gpt-4', 'gpt-3.5-turbo', 
@@ -185,6 +189,21 @@ def tokenization_drift(model1_name: str, model2_name: str, word: str, geminiAPI:
     return round(drift_score, 4)
 
 
+def align_vectors(vec1: np.ndarray, vec2: np.ndarray) -> tuple:
+    """Align two vectors to the same length by padding the shorter one with zeros"""
+    if len(vec1) == len(vec2):
+        return vec1, vec2
+    
+    max_len = max(len(vec1), len(vec2))
+    
+    if len(vec1) < max_len:
+        vec1 = np.pad(vec1, (0, max_len - len(vec1)), mode='constant')
+    
+    if len(vec2) < max_len:
+        vec2 = np.pad(vec2, (0, max_len - len(vec2)), mode='constant')
+    
+    return vec1, vec2
+
 def semantic_drift(model1_name: str, model2_name: str, word: str, geminiAPI: str = None) -> float:
     # use gemini embedding if model is gemini, otherwise use huggingface transformers
     if "gemini" in model1_name.lower():
@@ -201,9 +220,15 @@ def semantic_drift(model1_name: str, model2_name: str, word: str, geminiAPI: str
         print("Could not compute drift due to failed embedding with one or both of the given models.")
         return None
 
-    sim = cosine_similarity([emb1],[emb2])[0][0]
-    drift_score = 1 - sim
-    drift_score = max(0.0, min(1.0, drift_score))  # Clamp to [0, 1]
+    # Align vectors to same length
+    emb1, emb2 = align_vectors(emb1, emb2)
+    
+    distance = euclidean_distances([emb1], [emb2])[0][0]
+    
+    # Normalize by the magnitude of the vectors
+    max_possible_distance = np.linalg.norm(emb1) + np.linalg.norm(emb2)
+    drift_score = distance / max_possible_distance
+    
     return round(drift_score, 4)
 
 
@@ -218,12 +243,9 @@ def definition_drift(model1_name: str, model2_name: str, word: str, reference_de
     score1 = compare_definitions(def1, reference_def)
     score2 = compare_definitions(def2, reference_def)
 
-    drift_score = 1 - abs(score1 - score2)
+    drift_score = abs(score1 - score2)
     return round(drift_score, 4)
 
 
 
-modelDefinition = get_model_definition("Qwen/Qwen3-0.6B", "sybau")
-print(modelDefinition)
-    
 

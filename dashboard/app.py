@@ -85,7 +85,7 @@ def compute_tokenization_drift():
             "model1": model1,
             "model2": model2,
             "score": score,
-            "interpretation": "Score closer to 1 means less drift, closer to 0 means more drift"
+            "interpretation": "Score closer to 1 means more drift, closer to 0 means less drift"
         })
     except Exception as e:
         return jsonify({"error": f"Error computing drift: {str(e)}"}), 500
@@ -114,7 +114,7 @@ def compute_semantic_drift():
             "model1": model1,
             "model2": model2,
             "score": score,
-            "interpretation": "Score closer to 1 means less drift, closer to 0 means more drift"
+            "interpretation": "Score closer to 1 means more drift, closer to 0 means less drift"
         })
     except Exception as e:
         return jsonify({"error": f"Error computing drift: {str(e)}"}), 500
