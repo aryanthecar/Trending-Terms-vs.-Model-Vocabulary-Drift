@@ -27,8 +27,10 @@ AVAILABLE_MODELS = {
         "gpt-4o-mini", "gpt-4-turbo", "gpt-4", "gpt-3.5-turbo"
     ],
     "Hugging Face Models (via transformers)": [
-        "gpt2", "bert-base-uncased", "roberta-base", "distilbert-base-uncased",
-        "t5-small", "facebook/bart-base", "albert-base-v2"
+        'HuggingFaceTB/SmolLM2-135M', "gpt2", "Qwen/Qwen3-0.6B", "google/gemma-3-1b-it"
+    ],
+    "Gemini Models": [
+        "gemini-2.5-flash", "gemini-2.0-flash-lite", "gemini-2.5-pro", "gemini-1.5-flash"
     ]
 }
 
@@ -114,6 +116,40 @@ def compute_semantic_drift():
             "model1": model1,
             "model2": model2,
             "score": score,
+            "interpretation": "Score closer to 1 means more drift, closer to 0 means less drift"
+        })
+    except Exception as e:
+        return jsonify({"error": f"Error computing drift: {str(e)}"}), 500
+
+@app.route('/api/drift/definition', methods=['POST'])
+def compute_definition_drift():
+    """Compute definition drift between two models for a term"""
+    data = request.json
+    word = data.get("word")
+    model1 = data.get("model1")
+    model2 = data.get("model2")
+    reference_definition = data.get("reference_definition", "")
+    
+    if not all([word, model1, model2]):
+        return jsonify({"error": "Missing required parameters: word, model1, model2"}), 400
+    
+    # If no reference definition provided, use a default or skip
+    if not reference_definition:
+        reference_definition = f"Standard definition of the word '{word}'"
+    
+    try:
+        score = definition_drift(model1, model2, word, reference_definition, geminiAPI=None)
+        
+        if score is None:
+            return jsonify({"error": "Failed to compute definition drift"}), 500
+        
+        return jsonify({
+            "drift_type": "definition",
+            "word": word,
+            "model1": model1,
+            "model2": model2,
+            "score": score,
+            "reference_definition": reference_definition,
             "interpretation": "Score closer to 1 means more drift, closer to 0 means less drift"
         })
     except Exception as e:

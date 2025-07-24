@@ -71,7 +71,7 @@
             color: #555;
         }
 
-        .form-group select, .form-group input {
+        .form-group select, .form-group input, .form-group textarea {
             width: 100%;
             padding: 12px;
             border: 2px solid #ddd;
@@ -80,9 +80,14 @@
             transition: border-color 0.3s;
         }
 
-        .form-group select:focus, .form-group input:focus {
+        .form-group select:focus, .form-group input:focus, .form-group textarea:focus {
             outline: none;
             border-color: #667eea;
+        }
+
+        .form-group textarea {
+            min-height: 80px;
+            resize: vertical;
         }
 
         .btn {
@@ -94,6 +99,8 @@
             font-size: 16px;
             cursor: pointer;
             transition: transform 0.2s;
+            margin-right: 10px;
+            margin-bottom: 10px;
         }
 
         .btn:hover {
@@ -216,6 +223,12 @@
             background: #218838;
         }
 
+        .analysis-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
         @media (max-width: 768px) {
             .models-section {
                 grid-template-columns: 1fr;
@@ -227,6 +240,14 @@
 
             .word-input-group {
                 flex-direction: column;
+            }
+
+            .analysis-buttons {
+                flex-direction: column;
+            }
+
+            .btn {
+                margin-right: 0;
             }
         }
     </style>
@@ -282,12 +303,24 @@
                 </div>
             </div>
 
+            <!-- Reference Definition (for Definition Drift) -->
+            <div class="section">
+                <h2>📖 Reference Definition (Optional for Definition Drift)</h2>
+                <div class="form-group">
+                    <label for="referenceDefinition">Enter reference definition (leave blank for default):</label>
+                    <textarea id="referenceDefinition" placeholder="Enter the standard definition of the word for comparison..."></textarea>
+                </div>
+            </div>
+
             <!-- Analysis Buttons -->
             <div class="section">
                 <h2>🔍 Run Analysis</h2>
-                <button class="btn" onclick="analyzeTokenization()">Analyze Tokenization Drift</button>
-                <button class="btn" onclick="analyzeSemantic()">Analyze Semantic Drift</button>
-                <button class="btn" onclick="getTokenCount()">Get Token Count</button>
+                <div class="analysis-buttons">
+                    <button class="btn" onclick="analyzeTokenization()">Analyze Tokenization Drift</button>
+                    <button class="btn" onclick="analyzeSemantic()">Analyze Semantic Drift</button>
+                    <button class="btn" onclick="analyzeDefinition()">Analyze Definition Drift</button>
+                    <button class="btn" onclick="getTokenCount()">Get Token Count</button>
+                </div>
             </div>
 
             <!-- Results -->
@@ -501,6 +534,50 @@
             }
         }
 
+        async function analyzeDefinition() {
+            const word = getCurrentWord();
+            const model1 = document.getElementById('model1Select').value;
+            const model2 = document.getElementById('model2Select').value;
+            const referenceDefinition = document.getElementById('referenceDefinition').value.trim();
+            
+            if (!word || !model1 || !model2) {
+                showError('Please enter a word and select two models');
+                return;
+            }
+            
+            showLoading('Analyzing definition drift...');
+            
+            try {
+                const payload = {
+                    word: word,
+                    model1: model1,
+                    model2: model2
+                };
+                
+                if (referenceDefinition) {
+                    payload.reference_definition = referenceDefinition;
+                }
+                
+                const response = await fetch('/api/drift/definition', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(payload)
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    showResult('Definition Drift Analysis', result);
+                } else {
+                    showError(result.error || 'Failed to analyze definition drift');
+                }
+            } catch (error) {
+                showError('Error analyzing definition drift: ' + error.message);
+            }
+        }
+
         async function getTokenCount() {
             const word = getCurrentWord();
             const model = document.getElementById('model1Select').value;
@@ -541,8 +618,14 @@
                     <p><strong>Term:</strong> ${data.word}</p>
                     <p><strong>Model 1:</strong> ${data.model1}</p>
                     <p><strong>Model 2:</strong> ${data.model2}</p>
-                    <p><strong>Interpretation:</strong> ${data.interpretation}</p>
-                </div>`;
+                    <p><strong>Drift Type:</strong> ${data.drift_type}</p>
+                    <p><strong>Interpretation:</strong> ${data.interpretation}</p>`;
+                
+                if (data.reference_definition) {
+                    html += `<p><strong>Reference Definition:</strong> ${data.reference_definition}</p>`;
+                }
+                
+                html += `</div>`;
             } else if (data.token_count !== undefined) {
                 html += `<div class="result-item">
                     <h3>Token Count: <span class="score">${data.token_count}</span></h3>
