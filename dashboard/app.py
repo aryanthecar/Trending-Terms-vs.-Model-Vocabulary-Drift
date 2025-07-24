@@ -1,7 +1,7 @@
 from flask import Flask, request, jsonify, render_template
 from flask_cors import CORS
 import pandas as pd
-import numpy as np  # Add this import
+import numpy as np
 import os
 import sys
 
@@ -22,13 +22,10 @@ TRENDING_TERMS = [
     "male manipulator music", "Harvard travel ban", "girlboss"
 ]
 
-# Available models for drift analysis - updated for Gemini and others
+# Available models for drift analysis
 AVAILABLE_MODELS = {
     "OpenAI Models (via tiktoken)": [
-        "gpt2", "gpt-4o", "gpt-4o-mini", "gpt-4-turbo", "gpt-4", "gpt-3.5-turbo"
-    ],
-    "Gemini Models": [
-        "gemini-2.5-flash", "gemini-2.5-pro", "Gemini 1.5 Flash", "Gemini 1.5 Pro"
+        "gpt-4o-mini", "gpt-4-turbo", "gpt-4", "gpt-3.5-turbo"
     ],
     "Hugging Face Models (via transformers)": [
         'HuggingFaceTB/SmolLM2-135M', "gpt2", "Qwen/Qwen3-0.6B", "google/gemma-3-1b-it"
@@ -86,18 +83,17 @@ def compute_tokenization_drift():
     word = data.get("word")
     model1 = data.get("model1")
     model2 = data.get("model2")
-    gemini_api = data.get("gemini_api", None)
+    api_key = data.get("api_key")
     
     if not all([word, model1, model2]):
         return jsonify({"error": "Missing required parameters: word, model1, model2"}), 400
     
     try:
-        score = tokenization_drift(model1, model2, word, geminiAPI=gemini_api)
+        score = tokenization_drift(model1, model2, word, geminiAPI=api_key)
         
         if score is None:
             return jsonify({"error": "Failed to compute tokenization drift"}), 500
         
-        # Convert numpy types to Python types
         score = convert_numpy_types(score)
         
         return jsonify({
@@ -118,18 +114,17 @@ def compute_semantic_drift():
     word = data.get("word")
     model1 = data.get("model1")
     model2 = data.get("model2")
-    gemini_api = data.get("gemini_api", None)
+    api_key = data.get("api_key")
     
     if not all([word, model1, model2]):
         return jsonify({"error": "Missing required parameters: word, model1, model2"}), 400
     
     try:
-        score = semantic_drift(model1, model2, word, geminiAPI=gemini_api)
+        score = semantic_drift(model1, model2, word, geminiAPI=api_key)
         
         if score is None:
             return jsonify({"error": "Failed to compute semantic drift"}), 500
         
-        # Convert numpy types to Python types
         score = convert_numpy_types(score)
         
         return jsonify({
@@ -151,21 +146,20 @@ def compute_definition_drift():
     model1 = data.get("model1")
     model2 = data.get("model2")
     reference_definition = data.get("reference_definition", "")
+    api_key = data.get("api_key")
     
     if not all([word, model1, model2]):
         return jsonify({"error": "Missing required parameters: word, model1, model2"}), 400
     
-    # If no reference definition provided, use a default or skip
     if not reference_definition:
         reference_definition = f"Standard definition of the word '{word}'"
     
     try:
-        score = definition_drift(model1, model2, word, reference_definition, geminiAPI=None)
+        score = definition_drift(model1, model2, word, reference_definition, geminiAPI=api_key)
         
         if score is None:
             return jsonify({"error": "Failed to compute definition drift"}), 500
         
-        # Convert numpy types to Python types
         score = convert_numpy_types(score)
         
         return jsonify({
@@ -184,30 +178,55 @@ def compute_definition_drift():
 def get_token_count(term):
     """Get token count for a term using different models"""
     model = request.args.get('model', 'gpt2')
-    gemini_api = request.args.get('gemini_api', None)
+    api_key = request.args.get('api_key')
+    
+    # Trim whitespace from API key
+    if api_key:
+        api_key = api_key.strip()
     
     try:
+        # OpenAI models that use tiktoken
         tiktoken_models = {
-            'gpt-4o-mini', 'gpt-4-turbo', 'gpt-4', 'gpt-3.5-turbo'
+            'gpt-4o-mini', 'gpt-4-turbo', 'gpt-4', 'gpt-3.5-turbo', 'gpt-4o'
         }
         
+        # Determine which tokenizer to use based on model
         if model in tiktoken_models:
             token_count = count_tokens_openAI(term, model)
         elif 'gemini' in model.lower():
-            token_count = count_tokens_gemini(term, gemini_api, model)
+            if not api_key:
+                return jsonify({
+                    "error": "Gemini API key is required for Gemini models"
+                }), 400
+            # Fix: Correct parameter order - (word, geminiAPI, model_name)
+            token_count = count_tokens_gemini(term, api_key, model)
         else:
+            # Use transformers tokenizer for other models
             token_count = count_tokens_transformers(term, model)
         
-        # Convert numpy types to Python types
-        token_count = convert_numpy_types(token_count)
+        if token_count is None:
+            return jsonify({
+                "error": f"Failed to get token count for {model}"
+            }), 500
         
-        return jsonify({
+        response = jsonify({
+            "token_count": int(token_count) if token_count is not None else 0,
             "term": term,
             "model": model,
-            "token_count": token_count
+            "timestamp": pd.Timestamp.now().isoformat()
         })
+        
+        # Add no-cache headers
+        response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+        response.headers['Pragma'] = 'no-cache'
+        response.headers['Expires'] = '0'
+        
+        return response
+        
     except Exception as e:
-        return jsonify({"error": f"Error counting tokens: {str(e)}"}), 500
+        return jsonify({
+            "error": f"Error computing token count: {str(e)}"
+        }), 500
 
 @app.route('/api/health', methods=['GET'])
 def health_check():
