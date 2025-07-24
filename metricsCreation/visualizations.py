@@ -216,110 +216,7 @@ def plot_6_correlation_analysis():
         plt.savefig(f'{output_dir}/correlation_analysis.png', dpi=300, bbox_inches='tight')
         plt.close()
 
-# heatmap showing model performance across different metrics
-def plot_7_model_performance_heatmap():
-    model_cols = [col for col in definition_df.columns if col != 'word']
-    
-    # Create performance matrix
-    performance_data = []
-    metrics = ['Definition Similarity', 'Avg Tokens']
-    
-    for model in model_cols[:5]:  # Limit to first 5 models for readability
-        row = []
-        # Definition similarity (higher is better)
-        def_sim = definition_df[model].mean() if model in definition_df.columns else 0
-        row.append(def_sim)
-        
-        # Token count (normalize, lower might be better for efficiency)
-        token_count = token_df[model].mean() if model in token_df.columns else 0
-        row.append(token_count)
-        
-        performance_data.append(row)
-    
-    performance_matrix = np.array(performance_data)
-    
-    plt.figure(figsize=(8, 6))
-    im = plt.imshow(performance_matrix, cmap='RdYlBu_r', aspect='auto')
-    
-    plt.colorbar(im)
-    plt.xticks(range(len(metrics)), metrics, fontsize=12)
-    plt.yticks(range(len(model_cols[:5])), [m.split('/')[-1] for m in model_cols[:5]], fontsize=12)
-    plt.title('Model Performance Heatmap', fontsize=14, fontweight='bold')
-    
-    # Add text annotations
-    for i in range(len(model_cols[:5])):
-        for j in range(len(metrics)):
-            text = plt.text(j, i, f'{performance_matrix[i, j]:.3f}',
-                           ha="center", va="center", color="black", fontweight='bold')
-    
-    plt.tight_layout()
-    plt.savefig(f'{output_dir}/performance_heatmap.png', dpi=300, bbox_inches='tight')
-    plt.close()
-
-# five bar graphs showing definition drift (absolute difference in similarity) for each model
-def plot_8_definition_drift():
-    model_cols = [col for col in definition_df.columns if col != 'word']
-    
-    print(f"Creating definition drift graphs for {len(model_cols[:5])} models...")
-    
-    # Calculate pairwise differences for each word
-    for idx, target_model in enumerate(model_cols[:5]):  # Focus on first 5 models
-        print(f"  Processing model {idx+1}/5: {target_model}")
-        
-        try:
-            drift_data = []
-            comparison_models = []
-            
-            for other_model in model_cols:
-                if other_model != target_model:
-                    # Get data for both models, handling NaN values
-                    target_data = definition_df[target_model].dropna()
-                    other_data = definition_df[other_model].dropna()
-                    
-                    # Find common indices (words that have data for both models)
-                    common_indices = target_data.index.intersection(other_data.index)
-                    
-                    if len(common_indices) > 0:
-                        # Calculate absolute difference for common words only
-                        target_common = definition_df.loc[common_indices, target_model]
-                        other_common = definition_df.loc[common_indices, other_model]
-                        diffs = abs(target_common - other_common)
-                        avg_drift = diffs.mean()
-                        
-                        drift_data.append(avg_drift)
-                        comparison_models.append(other_model.split('/')[-1])
-                    else:
-                        print(f"    No common data between {target_model} and {other_model}")
-            
-            if drift_data:  # Only create graph if we have data
-                plt.figure(figsize=(10, 6))
-                bars = plt.bar(range(len(drift_data)), drift_data, color=teal_blue, alpha=0.8, edgecolor='black', linewidth=0.5)
-                
-                plt.xlabel('Comparison Models', fontsize=12)
-                plt.ylabel('Average Definition Drift', fontsize=12)
-                plt.title(f'Definition Drift: {target_model.split("/")[-1]} vs Other Models', fontsize=14, fontweight='bold')
-                plt.xticks(range(len(comparison_models)), comparison_models, rotation=45, ha='right')
-                plt.grid(axis='y', alpha=0.3)
-                
-                # Add value labels on bars
-                for i, bar in enumerate(bars):
-                    height = bar.get_height()
-                    plt.text(bar.get_x() + bar.get_width()/2., height + max(drift_data) * 0.01,
-                            f'{height:.3f}', ha='center', va='bottom', fontweight='bold')
-                
-                plt.tight_layout()
-                safe_name = target_model.replace('/', '_').replace(' ', '_').replace('-', '_')
-                plt.savefig(f'{output_dir}/definition_drift_{safe_name}.png', dpi=300, bbox_inches='tight')
-                plt.close()
-                print(f"    ✓ Created definition_drift_{safe_name}.png")
-            else:
-                print(f"    ✗ No valid data for {target_model}")
-                
-        except Exception as e:
-            print(f"    ✗ Error processing {target_model}: {e}")
-
 def plot_7_token_drift_heatmap():
-    """Token drift matrix heatmap showing pairwise tokenization differences"""
     # Select models that appear in the token analysis
     available_models = [col for col in token_df.columns if col != 'word']
     
@@ -394,6 +291,70 @@ def plot_7_token_drift_heatmap():
     # Save the plot
     plt.savefig(f'{output_dir}/token_drift_heatmap.png', dpi=300, bbox_inches='tight')
     plt.close()
+
+# five bar graphs showing definition drift (absolute difference in similarity) for each model
+def plot_8_definition_drift():
+    model_cols = [col for col in definition_df.columns if col != 'word']
+    
+    print(f"Creating definition drift graphs for {len(model_cols[:5])} models...")
+    
+    # Calculate pairwise differences for each word
+    for idx, target_model in enumerate(model_cols[:5]):  # Focus on first 5 models
+        print(f"  Processing model {idx+1}/5: {target_model}")
+        
+        try:
+            drift_data = []
+            comparison_models = []
+            
+            for other_model in model_cols:
+                if other_model != target_model:
+                    # Get data for both models, handling NaN values
+                    target_data = definition_df[target_model].dropna()
+                    other_data = definition_df[other_model].dropna()
+                    
+                    # Find common indices (words that have data for both models)
+                    common_indices = target_data.index.intersection(other_data.index)
+                    
+                    if len(common_indices) > 0:
+                        # Calculate absolute difference for common words only
+                        target_common = definition_df.loc[common_indices, target_model]
+                        other_common = definition_df.loc[common_indices, other_model]
+                        diffs = abs(target_common - other_common)
+                        avg_drift = diffs.mean()
+                        
+                        drift_data.append(avg_drift)
+                        comparison_models.append(other_model.split('/')[-1])
+                    else:
+                        print(f"    No common data between {target_model} and {other_model}")
+            
+            if drift_data:  # Only create graph if we have data
+                plt.figure(figsize=(10, 6))
+                bars = plt.bar(range(len(drift_data)), drift_data, color=teal_blue, alpha=0.8, edgecolor='black', linewidth=0.5)
+                
+                plt.xlabel('Comparison Models', fontsize=12)
+                plt.ylabel('Average Definition Drift', fontsize=12)
+                plt.title(f'Definition Drift: {target_model.split("/")[-1]} vs Other Models', fontsize=14, fontweight='bold')
+                plt.xticks(range(len(comparison_models)), comparison_models, rotation=45, ha='right')
+                plt.grid(axis='y', alpha=0.3)
+                
+                # Add value labels on bars
+                for i, bar in enumerate(bars):
+                    height = bar.get_height()
+                    plt.text(bar.get_x() + bar.get_width()/2., height + max(drift_data) * 0.01,
+                            f'{height:.3f}', ha='center', va='bottom', fontweight='bold')
+                
+                plt.tight_layout()
+                safe_name = target_model.replace('/', '_').replace(' ', '_').replace('-', '_')
+                plt.savefig(f'{output_dir}/definition_drift_{safe_name}.png', dpi=300, bbox_inches='tight')
+                plt.close()
+                print(f"    ✓ Created definition_drift_{safe_name}.png")
+            else:
+                print(f"    ✗ No valid data for {target_model}")
+                
+        except Exception as e:
+            print(f"    ✗ Error processing {target_model}: {e}")
+
+
 
 def main():
     print("Creating visualizations...")
