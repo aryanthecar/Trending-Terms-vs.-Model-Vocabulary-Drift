@@ -21,10 +21,13 @@ TRENDING_TERMS = [
     "male manipulator music", "Harvard travel ban", "girlboss"
 ]
 
-# Available models for drift analysis - using more compatible models
+# Available models for drift analysis - updated for Gemini and others
 AVAILABLE_MODELS = {
     "OpenAI Models (via tiktoken)": [
-        "gpt-4o-mini", "gpt-4-turbo", "gpt-4", "gpt-3.5-turbo"
+        "gpt2", "gpt-4o", "gpt-4o-mini", "gpt-4-turbo", "gpt-4", "gpt-3.5-turbo"
+    ],
+    "Gemini Models": [
+        "gemini-2.5-flash", "gemini-2.5-pro", "Gemini 1.5 Flash", "Gemini 1.5 Pro"
     ],
     "Hugging Face Models (via transformers)": [
         'HuggingFaceTB/SmolLM2-135M', "gpt2", "Qwen/Qwen3-0.6B", "google/gemma-3-1b-it"
@@ -70,13 +73,13 @@ def compute_tokenization_drift():
     word = data.get("word")
     model1 = data.get("model1")
     model2 = data.get("model2")
+    gemini_api = data.get("gemini_api", None)
     
     if not all([word, model1, model2]):
         return jsonify({"error": "Missing required parameters: word, model1, model2"}), 400
     
     try:
-        # For now, we'll use None for gemini_api since we're not implementing API keys yet
-        score = tokenization_drift(model1, model2, word, geminiAPI=None)
+        score = tokenization_drift(model1, model2, word, geminiAPI=gemini_api)
         
         if score is None:
             return jsonify({"error": "Failed to compute tokenization drift"}), 500
@@ -99,13 +102,13 @@ def compute_semantic_drift():
     word = data.get("word")
     model1 = data.get("model1")
     model2 = data.get("model2")
+    gemini_api = data.get("gemini_api", None)
     
     if not all([word, model1, model2]):
         return jsonify({"error": "Missing required parameters: word, model1, model2"}), 400
     
     try:
-        # For now, we'll use None for gemini_api since we're not implementing API keys yet
-        score = semantic_drift(model1, model2, word, geminiAPI=None)
+        score = semantic_drift(model1, model2, word, geminiAPI=gemini_api)
         
         if score is None:
             return jsonify({"error": "Failed to compute semantic drift"}), 500
@@ -159,15 +162,17 @@ def compute_definition_drift():
 def get_token_count(term):
     """Get token count for a term using different models"""
     model = request.args.get('model', 'gpt2')
+    gemini_api = request.args.get('gemini_api', None)
     
     try:
-        # Determine which tokenizer to use based on model
         tiktoken_models = {
-            'gpt-4o-mini', 'gpt-4-turbo', 'gpt-4', 'gpt-3.5-turbo'
+            'gpt2', 'gpt-4o', 'gpt-4o-mini', 'gpt-4-turbo', 'gpt-4', 'gpt-3.5-turbo'
         }
         
         if model in tiktoken_models:
             token_count = count_tokens_openAI(term, model)
+        elif 'gemini' in model.lower():
+            token_count = count_tokens_gemini(term, gemini_api, model)
         else:
             token_count = count_tokens_transformers(term, model)
         

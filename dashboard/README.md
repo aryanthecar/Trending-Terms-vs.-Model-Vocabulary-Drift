@@ -113,27 +113,5 @@ The dashboard is designed to be easily extended with API key support:
 - Modify the drift functions to accept API keys
 - Update the backend endpoints to handle API keys
 
-## Troubleshooting
 
-### Common Issues
-
-1. **ModuleNotFoundError**: Install missing dependencies with `pip install -r requirements.txt`
-
-2. **Model loading errors**: Some models require internet connection for first-time download
-
-3. **Memory issues**: Large models may require significant RAM
-
-### Debug Mode
-The dashboard runs in debug mode by default. Check the console for detailed error messages.
-
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Test thoroughly
-5. Submit a pull request
-
-## License
-
-This project is part of the Trending Terms vs. Model Vocabulary Drift analysis. 
+#

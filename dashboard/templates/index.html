@@ -260,6 +260,13 @@
         </div>
 
         <div class="content">
+            <!-- Gemini API Key Input -->
+            <div class="section">
+                <h2>🔑 Gemini API Key (required for Gemini models)</h2>
+                <div class="form-group">
+                    <input type="password" id="geminiApiKey" placeholder="Enter your Gemini API key here" style="width:100%;" />
+                </div>
+            </div>
             <!-- Custom Word Input -->
             <div class="section">
                 <h2>🎯 Enter Your Own Word</h2>
@@ -335,6 +342,13 @@
         let availableModels = {};
         let trendingTerms = [];
         let currentWord = '';
+
+        function isGeminiModel(model) {
+            return model && model.toLowerCase().includes('gemini');
+        }
+        function getGeminiApiKey() {
+            return document.getElementById('geminiApiKey').value.trim();
+        }
 
         // Load data on page load
         document.addEventListener('DOMContentLoaded', function() {
@@ -464,24 +478,26 @@
             const word = getCurrentWord();
             const model1 = document.getElementById('model1Select').value;
             const model2 = document.getElementById('model2Select').value;
-            
+            const geminiApi = (isGeminiModel(model1) || isGeminiModel(model2)) ? getGeminiApiKey() : null;
+
             if (!word || !model1 || !model2) {
                 showError('Please enter a word and select two models');
                 return;
             }
-            
+            if ((isGeminiModel(model1) || isGeminiModel(model2)) && !geminiApi) {
+                showError('Gemini API key required for Gemini models');
+                return;
+            }
+
             showLoading('Analyzing tokenization drift...');
             
             try {
                 const response = await fetch('/api/drift/tokenization', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        word: word,
-                        model1: model1,
-                        model2: model2
+                        word, model1, model2,
+                        gemini_api: geminiApi || undefined
                     })
                 });
                 
@@ -501,9 +517,14 @@
             const word = getCurrentWord();
             const model1 = document.getElementById('model1Select').value;
             const model2 = document.getElementById('model2Select').value;
-            
+            const geminiApi = (isGeminiModel(model1) || isGeminiModel(model2)) ? getGeminiApiKey() : null;
+
             if (!word || !model1 || !model2) {
                 showError('Please enter a word and select two models');
+                return;
+            }
+            if ((isGeminiModel(model1) || isGeminiModel(model2)) && !geminiApi) {
+                showError('Gemini API key required for Gemini models');
                 return;
             }
             
@@ -512,13 +533,10 @@
             try {
                 const response = await fetch('/api/drift/semantic', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        word: word,
-                        model1: model1,
-                        model2: model2
+                        word, model1, model2,
+                        gemini_api: geminiApi || undefined
                     })
                 });
                 
@@ -581,16 +599,21 @@
         async function getTokenCount() {
             const word = getCurrentWord();
             const model = document.getElementById('model1Select').value;
-            
+            const geminiApi = isGeminiModel(model) ? getGeminiApiKey() : null;
+
             if (!word || !model) {
                 showError('Please enter a word and select a model');
+                return;
+            }
+            if (isGeminiModel(model) && !geminiApi) {
+                showError('Gemini API key required for Gemini models');
                 return;
             }
             
             showLoading('Getting token count...');
             
             try {
-                const response = await fetch(`/api/tokens/${encodeURIComponent(word)}?model=${encodeURIComponent(model)}`);
+                const response = await fetch(`/api/tokens/${encodeURIComponent(word)}?model=${encodeURIComponent(model)}${geminiApi ? `&gemini_api=${encodeURIComponent(geminiApi)}` : ''}`);
                 const result = await response.json();
                 
                 if (response.ok) {
